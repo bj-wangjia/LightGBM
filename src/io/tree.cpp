@@ -6,7 +6,6 @@
 #include <LightGBM/dataset.h>
 #include <LightGBM/feature.h>
 
-#include <iostream>
 #include <sstream>
 #include <unordered_map>
 #include <functional>
@@ -216,7 +215,6 @@ std::string Tree::NodeToXML(int index, int node_type) {
 	} else {
 		// leaf
 		index = ~index;
-		std::cout << "index=" << index << std::endl;
 		ss << "<output> " << leaf_value_[index] << " </output>" << std::endl;
 		ss << "<count> " << leaf_count_[index] << " </count>" << std::endl;
 	}
