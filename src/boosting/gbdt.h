@@ -240,6 +240,11 @@ protected:
   * \param last_iter Last tree use to calculate
   */
   std::vector<std::pair<size_t, std::string>> FeatureImportance() const;
+	/*!
+	* \brief Calculate feature importances by gain
+	* \param last_iter Last tree use to calculate
+	*/
+	std::vector<std::pair<double, std::string>> FeatureGainImportance() const;
   /*! \brief current iteration */
   int iter_;
   /*! \brief Pointer to training data */
