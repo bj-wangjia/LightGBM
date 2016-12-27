@@ -493,6 +493,12 @@ void GBDT::SaveModelToFile(int num_iteration, const char* filename) const {
   for (size_t i = 0; i < pairs.size(); ++i) {
     output_file << pairs[i].second << "=" << std::to_string(pairs[i].first) << std::endl;
   }
+
+	std::vector<std::pair<double, std::string>> gain_pairs = FeatureGainImportance();
+	output_file << std::endl << "feature gain importances:" << std::endl;
+	for (size_t i = 0; i < gain_pairs.size(); ++i) {
+		output_file << gain_pairs[i].second << "=" << std::to_string(gain_pairs[i].first) << std::endl;
+	}
   output_file.close();
 }
 
@@ -591,6 +597,34 @@ std::vector<std::pair<size_t, std::string>> GBDT::FeatureImportance() const {
       return lhs.first > rhs.first;
     });
     return pairs;
+}
+
+std::vector<std::pair<double, std::string >> GBDT::FeatureGainImportance() const {
+	auto feature_names = std::ref(feature_names_);
+	if (train_data_ != nullptr) {
+		feature_names = std::ref(train_data_->feature_names());
+	}
+	std::vector<double> feature_importances(max_feature_idx_ + 1, 0);
+	for (size_t iter = 0; iter < models_.size(); ++iter) {
+		for (int split_idx = 0; split_idx < models_[iter]->num_leaves() - 1; ++split_idx) {
+			feature_importances[models_[iter]->split_feature_real(split_idx)] += 
+				models_[iter]->split_gain(split_idx);
+		}
+	}
+	// store the importance first
+	std::vector<std::pair<double, std::string>> pairs;
+	for (size_t i = 0; i < feature_importances.size(); ++i) {
+		if (feature_importances[i] > 0) {
+			pairs.emplace_back(feature_importances[i], feature_names.get().at(i));
+		}
+	}
+	// sort the import
+	std::sort(pairs.begin(), pairs.end(),
+		[](const std::pair<double, std::string>&lhs,
+			const std::pair<double, std::string>&rhs) {
+		return lhs.first > rhs.first;
+	});
+	return pairs;
 }
 
 std::vector<double> GBDT::PredictRaw(const double* value) const {
