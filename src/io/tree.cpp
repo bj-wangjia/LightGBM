@@ -6,6 +6,7 @@
 #include <LightGBM/dataset.h>
 #include <LightGBM/feature.h>
 
+#include <iostream>
 #include <sstream>
 #include <unordered_map>
 #include <functional>
@@ -187,6 +188,41 @@ std::string Tree::NodeToJSON(int index) {
   }
 
   return ss.str();
+}
+
+std::string Tree::ToXML() {
+	return NodeToXML(0, 0);
+}
+
+std::string Tree::NodeToXML(int index, int node_type) {
+	std::stringstream ss;
+	if (node_type == 0) {
+		ss << "<split>" << std::endl;
+	} else if (node_type == 1) {
+		ss << "<split pos=\"left\">" << std::endl;
+	} else {
+		ss << "<split pos=\"right\">" << std::endl;
+	}
+	//TODO
+	if (index >= 0) {
+		// non-leaf
+		ss << "<feature> " << split_feature_real_[index] << " </feature>" << std::endl;
+		ss << "<threshold> " << threshold_[index] << " </threshold>" << std::endl;
+		ss << NodeToXML(left_child_[index], 1);
+		ss << NodeToXML(right_child_[index], 2);
+		ss << "<split_gain> " << split_gain_[index] << " </split_gain>" << std::endl;
+		ss << "<internal_value> " << internal_value_[index] << " </internal_value>" << std::endl;
+		ss << "<internal_count> " << internal_count_[index] << " </internal_count>" << std::endl;
+	} else {
+		// leaf
+		index = ~index;
+		std::cout << "index=" << index << std::endl;
+		ss << "<output> " << leaf_value_[index] << " </output>" << std::endl;
+		ss << "<count> " << leaf_count_[index] << " </count>" << std::endl;
+	}
+	ss << "</split>" << std::endl;
+
+	return ss.str();
 }
 
 Tree::Tree(const std::string& str) {

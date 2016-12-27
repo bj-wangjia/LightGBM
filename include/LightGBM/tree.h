@@ -107,6 +107,10 @@ public:
   /*! \brief Serialize this object to json*/
   std::string ToJSON();
 
+	/*! \brief Serialize this object to xml*/
+	std::string ToXML();
+
+
   template<typename T>
   static bool CategoricalDecision(T fval, T threshold) {
     if (static_cast<int>(fval) == static_cast<int>(threshold)) {
@@ -155,6 +159,12 @@ private:
 
   /*! \brief Serialize one node to json*/
   inline std::string NodeToJSON(int index);
+
+	/*! 
+	* \brief Serialize one node to xml
+	* \param node_type, 0:root 1:left, 2:right
+	*/
+	inline std::string NodeToXML(int index, int node_type);
 
   /*! \brief Number of max leaves*/
   int max_leaves_;

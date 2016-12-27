@@ -430,8 +430,27 @@ std::string GBDT::DumpModel() const {
   return ss.str();
 }
 
+std::string GBDT::DumpModelXML() const {
+	std::stringstream ss;
+	ss << "## LambdaMART" << std::endl;
+	ss << "<ensemble> " << std::endl;
+	for (size_t i = 0; i < models_.size(); ++i) {
+		ss << "<tree id=\"" << i + 1 << "\" weight=\"1\">" << std::endl;
+		ss << models_[i]->ToXML();
+		ss << "</tree>" << std::endl;
+	}
+	ss << "</ensemble> " << std::endl;
+	return ss.str();
+}
+
 void GBDT::SaveModelToFile(int num_iteration, const char* filename) const {
   /*! \brief File to write models */
+
+	std::ofstream xml_file;
+	xml_file.open(std::string(filename) + ".xml.mod");
+	xml_file << DumpModelXML();
+	xml_file.close();
+
   std::ofstream output_file;
   output_file.open(filename);
   // output model type

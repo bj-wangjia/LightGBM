@@ -150,6 +150,12 @@ public:
   */
   std::string DumpModel() const override;
 
+	/*!
+	* \brief Dump model to json format string
+	* \return Json format string of model
+	*/
+	std::string DumpModelXML() const override;
+
   /*!
   * \brief Save model to file
   * \param num_used_model Number of model that want to save, -1 means save all

@@ -138,6 +138,12 @@ public:
   */
   virtual std::string DumpModel() const = 0;
 
+	/*!
+	* \brief Dump model to XML format string
+	* \return XML format string of model
+	*/
+	virtual std::string DumpModelXML() const = 0;
+
   /*!
   * \brief Save model to file
   * \param num_used_model Number of model that want to save, -1 means save all
