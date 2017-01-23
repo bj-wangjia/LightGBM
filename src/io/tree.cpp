@@ -190,37 +190,37 @@ std::string Tree::NodeToJSON(int index) {
 }
 
 std::string Tree::ToXML() {
-	return NodeToXML(0, 0);
+  return NodeToXML(0, 0);
 }
 
 std::string Tree::NodeToXML(int index, int node_type) {
-	std::stringstream ss;
-	if (node_type == 0) {
-		ss << "<split>" << std::endl;
-	} else if (node_type == 1) {
-		ss << "<split pos=\"left\">" << std::endl;
-	} else {
-		ss << "<split pos=\"right\">" << std::endl;
-	}
-	//TODO
-	if (index >= 0) {
-		// non-leaf
-		ss << "<feature> " << split_feature_real_[index] << " </feature>" << std::endl;
-		ss << "<threshold> " << threshold_[index] << " </threshold>" << std::endl;
-		ss << NodeToXML(left_child_[index], 1);
-		ss << NodeToXML(right_child_[index], 2);
-		ss << "<split_gain> " << split_gain_[index] << " </split_gain>" << std::endl;
-		ss << "<internal_value> " << internal_value_[index] << " </internal_value>" << std::endl;
-		ss << "<internal_count> " << internal_count_[index] << " </internal_count>" << std::endl;
-	} else {
-		// leaf
-		index = ~index;
-		ss << "<output> " << leaf_value_[index] << " </output>" << std::endl;
-		ss << "<count> " << leaf_count_[index] << " </count>" << std::endl;
-	}
-	ss << "</split>" << std::endl;
+  std::stringstream ss;
+  if (node_type == 0) {
+    ss << "<split>" << std::endl;
+  } else if (node_type == 1) {
+    ss << "<split pos=\"left\">" << std::endl;
+  } else {
+    ss << "<split pos=\"right\">" << std::endl;
+  }
+  //TODO
+  if (index >= 0) {
+    // non-leaf
+    ss << "<feature> " << split_feature_real_[index] << " </feature>" << std::endl;
+    ss << "<threshold> " << threshold_[index] << " </threshold>" << std::endl;
+    ss << NodeToXML(left_child_[index], 1);
+    ss << NodeToXML(right_child_[index], 2);
+    ss << "<split_gain> " << split_gain_[index] << " </split_gain>" << std::endl;
+    ss << "<internal_value> " << internal_value_[index] << " </internal_value>" << std::endl;
+    ss << "<internal_count> " << internal_count_[index] << " </internal_count>" << std::endl;
+  } else {
+    // leaf
+    index = ~index;
+    ss << "<output> " << leaf_value_[index] << " </output>" << std::endl;
+    ss << "<count> " << leaf_count_[index] << " </count>" << std::endl;
+  }
+  ss << "</split>" << std::endl;
 
-	return ss.str();
+  return ss.str();
 }
 
 Tree::Tree(const std::string& str) {

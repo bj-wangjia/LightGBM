@@ -44,6 +44,7 @@ void GBDT::ResetTrainingData(const BoostingConfig* config, const Dataset* train_
   gbdt_config_ = config;
   early_stopping_round_ = gbdt_config_->early_stopping_round;
   shrinkage_rate_ = gbdt_config_->learning_rate;
+  shrinkage_rates_ = gbdt_config_->learning_rates;
   random_ = Random(gbdt_config_->bagging_seed);
   // create tree learner
   tree_learner_.clear();
@@ -214,10 +215,41 @@ bool GBDT::TrainOneIter(const score_t* gradient, const score_t* hessian, bool is
     }
 
     // shrinkage by learning rate
-    new_tree->Shrinkage(shrinkage_rate_);
-    // update score
-    UpdateScore(new_tree.get(), curr_class);
-    UpdateScoreOutOfBag(new_tree.get(), curr_class);
+    if (shrinkage_rates_.size() > 1) {
+      double best_shrinkage_rate = 0;
+      double best_score = std::numeric_limits<double>::min();
+      for (auto shrinkage_rate : shrinkage_rates_) {
+        new_tree->Shrinkage(shrinkage_rate);
+        // update score
+        UpdateScore(new_tree.get(), curr_class);
+        UpdateScoreOutOfBag(new_tree.get(), curr_class);
+
+        //get train data score  used training_metrics[0] and score[0]
+        auto name = training_metrics_[0]->GetName();
+        auto scores = training_metrics_[0]->Eval(train_score_updater_->score());
+        if (best_score < scores[0]) {
+          best_score = scores[0];
+          best_shrinkage_rate = shrinkage_rate;
+        }
+
+        // roll back
+        new_tree->Shrinkage(-1.0);
+        UpdateScore(new_tree.get(), curr_class);
+        UpdateScoreOutOfBag(new_tree.get(), curr_class);
+
+        new_tree->Shrinkage(1.0 / shrinkage_rate);
+      }
+      new_tree->Shrinkage(best_shrinkage_rate);
+      UpdateScore(new_tree.get(), curr_class);
+      UpdateScoreOutOfBag(new_tree.get(), curr_class);
+      cur_sharinkage_rate_ = best_shrinkage_rate;
+    } else {
+      new_tree->Shrinkage(shrinkage_rate_);
+      // update score
+      UpdateScore(new_tree.get(), curr_class);
+      UpdateScoreOutOfBag(new_tree.get(), curr_class);
+      cur_sharinkage_rate_ = shrinkage_rate_;
+    }
 
     // add model
     models_.push_back(std::move(new_tree));
@@ -282,7 +314,7 @@ bool GBDT::OutputMetric(int iter) {
       auto name = sub_metric->GetName();
       auto scores = sub_metric->Eval(train_score_updater_->score());
       for (size_t k = 0; k < name.size(); ++k) {
-        Log::Info("Iteration:%d, training %s : %f", iter, name[k].c_str(), scores[k]);
+        Log::Info("Iteration:%d, training %s : %f, learning_rate : %f", iter, name[k].c_str(), scores[k], cur_sharinkage_rate_);
       }
     }
   }
@@ -294,7 +326,7 @@ bool GBDT::OutputMetric(int iter) {
         if ((iter % gbdt_config_->output_freq) == 0) {
           auto name = valid_metrics_[i][j]->GetName();
           for (size_t k = 0; k < name.size(); ++k) {
-            Log::Info("Iteration:%d, valid_%d %s : %f", iter, i + 1, name[k].c_str(), test_scores[k]);
+            Log::Info("Iteration:%d, valid_%d %s : %f, learning_rate : %f", iter, i + 1, name[k].c_str(), test_scores[k], cur_sharinkage_rate_);
           }
         }
         if (!ret && early_stopping_round_ > 0) {
@@ -431,25 +463,25 @@ std::string GBDT::DumpModel() const {
 }
 
 std::string GBDT::DumpModelXML() const {
-	std::stringstream ss;
-	ss << "## LambdaMART" << std::endl;
-	ss << "<ensemble> " << std::endl;
-	for (size_t i = 0; i < models_.size(); ++i) {
-		ss << "<tree id=\"" << i + 1 << "\" weight=\"1\">" << std::endl;
-		ss << models_[i]->ToXML();
-		ss << "</tree>" << std::endl;
-	}
-	ss << "</ensemble> " << std::endl;
-	return ss.str();
+  std::stringstream ss;
+  ss << "## LambdaMART" << std::endl;
+  ss << "<ensemble> " << std::endl;
+  for (size_t i = 0; i < models_.size(); ++i) {
+    ss << "<tree id=\"" << i + 1 << "\" weight=\"1\">" << std::endl;
+    ss << models_[i]->ToXML();
+    ss << "</tree>" << std::endl;
+  }
+  ss << "</ensemble> " << std::endl;
+  return ss.str();
 }
 
 void GBDT::SaveModelToFile(int num_iteration, const char* filename) const {
   /*! \brief File to write models */
 
-	std::ofstream xml_file;
-	xml_file.open(std::string(filename) + ".xml.mod");
-	xml_file << DumpModelXML();
-	xml_file.close();
+  std::ofstream xml_file;
+  xml_file.open(std::string(filename) + ".xml.mod");
+  xml_file << DumpModelXML();
+  xml_file.close();
 
   std::ofstream output_file;
   output_file.open(filename);
@@ -494,11 +526,11 @@ void GBDT::SaveModelToFile(int num_iteration, const char* filename) const {
     output_file << pairs[i].second << "=" << std::to_string(pairs[i].first) << std::endl;
   }
 
-	std::vector<std::pair<double, std::string>> gain_pairs = FeatureGainImportance();
-	output_file << std::endl << "feature gain importances:" << std::endl;
-	for (size_t i = 0; i < gain_pairs.size(); ++i) {
-		output_file << gain_pairs[i].second << "=" << std::to_string(gain_pairs[i].first) << std::endl;
-	}
+  std::vector<std::pair<double, std::string>> gain_pairs = FeatureGainImportance();
+  output_file << std::endl << "feature gain importances:" << std::endl;
+  for (size_t i = 0; i < gain_pairs.size(); ++i) {
+    output_file << gain_pairs[i].second << "=" << std::to_string(gain_pairs[i].first) << std::endl;
+  }
   output_file.close();
 }
 
@@ -600,31 +632,31 @@ std::vector<std::pair<size_t, std::string>> GBDT::FeatureImportance() const {
 }
 
 std::vector<std::pair<double, std::string >> GBDT::FeatureGainImportance() const {
-	auto feature_names = std::ref(feature_names_);
-	if (train_data_ != nullptr) {
-		feature_names = std::ref(train_data_->feature_names());
-	}
-	std::vector<double> feature_importances(max_feature_idx_ + 1, 0);
-	for (size_t iter = 0; iter < models_.size(); ++iter) {
-		for (int split_idx = 0; split_idx < models_[iter]->num_leaves() - 1; ++split_idx) {
-			feature_importances[models_[iter]->split_feature_real(split_idx)] += 
-				models_[iter]->split_gain(split_idx);
-		}
-	}
-	// store the importance first
-	std::vector<std::pair<double, std::string>> pairs;
-	for (size_t i = 0; i < feature_importances.size(); ++i) {
-		if (feature_importances[i] > 0) {
-			pairs.emplace_back(feature_importances[i], feature_names.get().at(i));
-		}
-	}
-	// sort the import
-	std::sort(pairs.begin(), pairs.end(),
-		[](const std::pair<double, std::string>&lhs,
-			const std::pair<double, std::string>&rhs) {
-		return lhs.first > rhs.first;
-	});
-	return pairs;
+  auto feature_names = std::ref(feature_names_);
+  if (train_data_ != nullptr) {
+    feature_names = std::ref(train_data_->feature_names());
+  }
+  std::vector<double> feature_importances(max_feature_idx_ + 1, 0);
+  for (size_t iter = 0; iter < models_.size(); ++iter) {
+    for (int split_idx = 0; split_idx < models_[iter]->num_leaves() - 1; ++split_idx) {
+      feature_importances[models_[iter]->split_feature_real(split_idx)] += 
+        models_[iter]->split_gain(split_idx) / models_[iter]->internal_count(split_idx);
+    }
+  }
+  // store the importance first
+  std::vector<std::pair<double, std::string>> pairs;
+  for (size_t i = 0; i < feature_importances.size(); ++i) {
+    if (feature_importances[i] > 0) {
+      pairs.emplace_back(feature_importances[i], feature_names.get().at(i));
+    }
+  }
+  // sort the import
+  std::sort(pairs.begin(), pairs.end(),
+    [](const std::pair<double, std::string>&lhs,
+      const std::pair<double, std::string>&rhs) {
+    return lhs.first > rhs.first;
+  });
+  return pairs;
 }
 
 std::vector<double> GBDT::PredictRaw(const double* value) const {

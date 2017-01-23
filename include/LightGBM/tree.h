@@ -90,8 +90,11 @@ public:
   /*! \brief Get feature of specific split*/
   inline int split_feature_real(int split_idx) const { return split_feature_real_[split_idx]; }
 
-	/*! \brief Get feature of split gain */
-	inline double split_gain(int split_idx) const { return split_gain_[split_idx]; }
+  /*! \brief Get feature of split gain */
+  inline double split_gain(int split_idx) const { return split_gain_[split_idx]; }
+
+  /*! \brief Get Internal Count of split node */
+  inline int internal_count(int split_idx) const { return internal_count_[split_idx]; }
 
   /*!
   * \brief Shrinkage for the tree's output
@@ -110,8 +113,8 @@ public:
   /*! \brief Serialize this object to json*/
   std::string ToJSON();
 
-	/*! \brief Serialize this object to xml*/
-	std::string ToXML();
+  /*! \brief Serialize this object to xml*/
+  std::string ToXML();
 
 
   template<typename T>
@@ -163,11 +166,11 @@ private:
   /*! \brief Serialize one node to json*/
   inline std::string NodeToJSON(int index);
 
-	/*! 
-	* \brief Serialize one node to xml
-	* \param node_type, 0:root 1:left, 2:right
-	*/
-	inline std::string NodeToXML(int index, int node_type);
+  /*! 
+  * \brief Serialize one node to xml
+  * \param node_type, 0:root 1:left, 2:right
+  */
+  inline std::string NodeToXML(int index, int node_type);
 
   /*! \brief Number of max leaves*/
   int max_leaves_;

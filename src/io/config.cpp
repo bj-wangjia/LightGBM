@@ -302,6 +302,21 @@ void BoostingConfig::Set(const std::unordered_map<std::string, std::string>& par
   GetInt(params, "drop_seed", &drop_seed);
   GetDouble(params, "drop_rate", &drop_rate);
   CHECK(drop_rate <= 1.0 && drop_rate >= 0.0);
+  std::string value;
+  GetString(params, "learning_rates", &value);
+  std::vector<std::string> items = Common::Split(value.c_str(), ',');
+  for (auto item : items) {
+    double tmp = 0.0;
+    if (item.empty()) {
+      continue;
+    }
+    if (!Common::AtofAndCheck(item.c_str(), &tmp)) {
+      Log::Fatal("Parameter %s should be of type float, got [%s]",
+        "learning_rates", item.c_str());
+    }
+    learning_rates.emplace_back(tmp);
+  }
+
   GetTreeLearnerType(params);
   tree_config.Set(params);
 }

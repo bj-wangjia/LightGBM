@@ -150,11 +150,11 @@ public:
   */
   std::string DumpModel() const override;
 
-	/*!
-	* \brief Dump model to json format string
-	* \return Json format string of model
-	*/
-	std::string DumpModelXML() const override;
+  /*!
+  * \brief Dump model to json format string
+  * \return Json format string of model
+  */
+  std::string DumpModelXML() const override;
 
   /*!
   * \brief Save model to file
@@ -246,11 +246,11 @@ protected:
   * \param last_iter Last tree use to calculate
   */
   std::vector<std::pair<size_t, std::string>> FeatureImportance() const;
-	/*!
-	* \brief Calculate feature importances by gain
-	* \param last_iter Last tree use to calculate
-	*/
-	std::vector<std::pair<double, std::string>> FeatureGainImportance() const;
+  /*!
+  * \brief Calculate feature importances by gain
+  * \param last_iter Last tree use to calculate
+  */
+  std::vector<std::pair<double, std::string>> FeatureGainImportance() const;
   /*! \brief current iteration */
   int iter_;
   /*! \brief Pointer to training data */
@@ -294,6 +294,8 @@ protected:
   data_size_t num_data_;
   /*! \brief Number of classes */
   int num_class_;
+  /*! \brief Current Shrinkage rate */
+  double cur_sharinkage_rate_;
   /*! \brief Random generator, used for bagging */
   Random random_;
   /*!
@@ -307,6 +309,11 @@ protected:
   int num_iteration_for_pred_;
   /*! \brief Shrinkage rate for one iteration */
   double shrinkage_rate_;
+  /*! 
+  *   \brief multi Shrinkage rate for one iteration 
+  *          will select the best shrinkage for one iteration
+  */
+  std::vector<double> shrinkage_rates_;
   /*! \brief Number of loaded initial models */
   int num_init_iteration_;
   /*! \brief Feature names */

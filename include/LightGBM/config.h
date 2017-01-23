@@ -199,6 +199,7 @@ public:
   bool is_provide_training_metric = false;
   int num_iterations = 10;
   double learning_rate = 0.1f;
+  std::vector<double> learning_rates;
   double bagging_fraction = 1.0f;
   int bagging_seed = 3;
   int bagging_freq = 0;
